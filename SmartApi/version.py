@@ -1,8 +1,0 @@
-__title__ = "smartconnect"
-__description__ = "Angel openApi integration"
-__url__ = ""
-__download_url__ = "https://github.com/zerodhatech/pykiteconnect"
-__version__ = "1.0.1"
-__author__ = "Applied Cloud Computing Pvt ltd. (India)"
-__author_email__ = "talk@zerodha.tech"
-__license__ = "MIT"
