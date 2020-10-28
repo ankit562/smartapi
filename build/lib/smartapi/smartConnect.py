@@ -1,6 +1,7 @@
 from six.moves.urllib.parse import urljoin
 import sys
 sys.path.append('c:\AngelSmartApi\SmartApi')
+print (sys.path)
 import csv
 import json
 import dateutil.parser
@@ -128,9 +129,11 @@ class SmartConnect(object):
     def _request(self, route, method, parameters=None):
         """Make an HTTP request."""
         params = parameters.copy() if parameters else {}
-        print("Request params:",params)
+        print(params)
         uri =self._routes[route].format(**params)
+        #print(uri)
         url = urljoin(self.root, uri)
+        print(url)
         hostname = socket.gethostname() 
         clientLocalIP=socket.gethostbyname(hostname)
         clientPublicIP=get('https://api.ipify.org').text
@@ -157,12 +160,13 @@ class SmartConnect(object):
         #if self.api_key and self.access_token:
         if self.access_token:
             # set authorization header
-    
+            print("11111111111111111",self.access_token)
             auth_header = self.access_token
             headers["Authorization"] = "Bearer {}".format(auth_header)
+            print(auth_header)
         if self.debug:
             log.debug("Request: {method} {url} {params} {headers}".format(method=method, url=url, params=params, headers=headers))
-        
+        print(headers)
         try:
             r = requests.request(method,
                                         url,
@@ -184,7 +188,7 @@ class SmartConnect(object):
         if "json" in headers["Content-type"]:
             try:
                 data = json.loads(r.content.decode("utf8"))
-                print("The Reponse Content",data)
+                print("cgqkqwhxbqwxwuv",data)
             except ValueError:
                 raise DataException("Couldn't parse the JSON response received from the server: {content}".format(
                     content=r.content))
@@ -225,24 +229,18 @@ class SmartConnect(object):
         print("Client Code:",clientCode,"Password:",password)
         params={"clientcode":clientCode,"password":password}
         loginResultObject=self._postRequest("api.login",params)
-        if "jwtToken" and "refreshToken" in loginResultObject:
-            jwtToken=loginResultObject['data']['jwtToken']
-            refreshToken=loginResultObject['data']['refreshToken']
-            self.setAccessToken(jwtToken)
-            self.setRefreshToken(refreshToken)
-            user=self.getProfile(refreshToken)
-            print("User",user)
-            id=user['data']['clientcode']
-            print(id)
-            self.setUserId(id)
-            user['data']['jwtToken']="Bearer "+jwtToken
-            user['data']['refreshToken']=refreshToken
-            return user
-            
-        else:
-            print("Password or Userid is incorrect or expired")
-        
-
+        jwtToken=loginResultObject['data']['jwtToken']
+        self.setAccessToken(jwtToken)
+        refreshToken=loginResultObject['data']['refreshToken']
+        self.setRefreshToken(refreshToken)
+        user=self.getProfile(refreshToken)
+        print("User",user)
+        id=user['data']['clientcode']
+        print(id)
+        self.setUserId(id)
+        user['data']['jwtToken']="Bearer "+jwtToken
+        user['data']['refreshToken']=refreshToken
+        return user
     
     def terminateSession(self,clientCode):
         logoutResponseObject=self._postRequest("api.logout",{"clientcode":clientCode})
@@ -264,7 +262,7 @@ class SmartConnect(object):
             "refreshToken": self.refresh_token,
             #"checksum": checksum
         })
-
+        print(response)
         tokenSet={}
 
         if "jwtToken" in response:
@@ -281,13 +279,13 @@ class SmartConnect(object):
     def placeOrder(self,orderparams):
         #params = {"exchange":orderparams.exchange,"symbolToken":orderparams.symboltoken,"transactionType":orderparams.transactionType,"quantity":orderparams.quantity,"price":orderparams.price,"productType":orderparams.producttype,"orderType":orderparams.ordertype,"duration":orderparams.duration,"variety":orderparams.variety,"tradingSymbol":orderparams.tradingsymbol,"triggerPrice":orderparams.trigger_price,"squareoff":orderparams.squareoff,"stoploss":orderparams.stoploss,"trailingStoploss":orderparams.trailing_stoploss,"tag":orderparams.tag}
         params=orderparams
-        print("placeOrder params",params)
+        print(params)
         for k in list(params.keys()):
             if params[k] is None :
                 del(params[k])
         
         orderResponse= self._postRequest("api.order.place", params)['data']['orderid']
-        print("The placeOrder",orderResponse)
+        print(orderResponse)
         return orderResponse
     
     def modifyOrder(self,orderparams):
