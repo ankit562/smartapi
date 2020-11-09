@@ -55,7 +55,7 @@ class DataException(SmartAPIException):
 
 
 class NetworkException(SmartAPIException):
-    """Represents a network issue between Kite and the backend Order Management System (OMS). Default code is 503."""
+    """Represents a network issue between api and the backend Order Management System (OMS). Default code is 503."""
 
     def __init__(self, message, code=503):
         """Initialize the exception."""

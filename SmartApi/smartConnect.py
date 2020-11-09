@@ -1,5 +1,6 @@
 from six.moves.urllib.parse import urljoin
 import sys
+
 sys.path.append('c:\AngelSmartApi\SmartApi')
 import csv
 import json
@@ -7,13 +8,13 @@ import dateutil.parser
 import hashlib
 import logging
 import datetime
-import smartExceptions 
+import smartapi.smartExceptions as ex
 import requests
 from requests import get
 import re, uuid
 import socket
 
-from version import __version__, __title__
+from smartapi.version import __version__, __title__
 
 log = logging.getLogger(__name__)
 
@@ -128,9 +129,11 @@ class SmartConnect(object):
     def _request(self, route, method, parameters=None):
         """Make an HTTP request."""
         params = parameters.copy() if parameters else {}
-        print("Request params:",params)
+       
         uri =self._routes[route].format(**params)
+        #print(uri)
         url = urljoin(self.root, uri)
+      
         hostname = socket.gethostname() 
         clientLocalIP=socket.gethostbyname(hostname)
         clientPublicIP=get('https://api.ipify.org').text
@@ -142,8 +145,8 @@ class SmartConnect(object):
 
         # Custom headers
         headers = {
-            #"X-Kite-Version": "3", 
-            #"User-Agent": self._user_agent(),
+            #"X-SmartApi-Version": "", 
+            #"User-Agent": self._user_agent()
             "Content-type":accept,
             "X-ClientLocalIP": clientLocalIP,
             "X-ClientPublicIP": clientPublicIP,
@@ -157,12 +160,13 @@ class SmartConnect(object):
         #if self.api_key and self.access_token:
         if self.access_token:
             # set authorization header
-    
+        
             auth_header = self.access_token
             headers["Authorization"] = "Bearer {}".format(auth_header)
+
         if self.debug:
             log.debug("Request: {method} {url} {params} {headers}".format(method=method, url=url, params=params, headers=headers))
-        
+    
         try:
             r = requests.request(method,
                                         url,
@@ -184,9 +188,9 @@ class SmartConnect(object):
         if "json" in headers["Content-type"]:
             try:
                 data = json.loads(r.content.decode("utf8"))
-                print("The Reponse Content",data)
+             
             except ValueError:
-                raise DataException("Couldn't parse the JSON response received from the server: {content}".format(
+                raise ex.DataException("Couldn't parse the JSON response received from the server: {content}".format(
                     content=r.content))
 
             # api error
@@ -195,15 +199,15 @@ class SmartConnect(object):
                 if self.session_expiry_hook and r.status_code == 403 and data["error_type"] == "TokenException":
                     self.session_expiry_hook()
 
-                # native Kite errors
-                exp = getattr(ex, data["error_type"], GeneralException)
+                # native errors
+                exp = getattr(ex, data["error_type"], ex.GeneralException)
                 raise exp(data["message"], code=r.status_code)
 
             return data
         elif "csv" in headers["Content-type"]:
             return r.content
         else:
-            raise DataException("Unknown Content-type ({content_type}) with response: ({content})".format(
+            raise ex.DataException("Unknown Content-type ({content_type}) with response: ({content})".format(
                 content_type=headers["Content-type"],
                 content=r.content))
         
@@ -215,34 +219,29 @@ class SmartConnect(object):
         return self._request(route, "PUT", params)
     def _postRequest(self, route, params=None):
         """Alias for sending a POST request."""
-        print("here",route,params)
         return self._request(route, "POST", params)
     def _getRequest(self, route, params=None):
         """Alias for sending a GET request."""
         return self._request(route, "GET", params)
 
     def generateSession(self,clientCode,password):
-        print("Client Code:",clientCode,"Password:",password)
+        
         params={"clientcode":clientCode,"password":password}
         loginResultObject=self._postRequest("api.login",params)
-        if "jwtToken" and "refreshToken" in loginResultObject:
-            jwtToken=loginResultObject['data']['jwtToken']
-            refreshToken=loginResultObject['data']['refreshToken']
-            self.setAccessToken(jwtToken)
-            self.setRefreshToken(refreshToken)
-            user=self.getProfile(refreshToken)
-            print("User",user)
-            id=user['data']['clientcode']
-            print(id)
-            self.setUserId(id)
-            user['data']['jwtToken']="Bearer "+jwtToken
-            user['data']['refreshToken']=refreshToken
-            return user
-            
-        else:
-            print("Password or Userid is incorrect or expired")
-        
+        jwtToken=loginResultObject['data']['jwtToken']
+        self.setAccessToken(jwtToken)
+        refreshToken=loginResultObject['data']['refreshToken']
+        self.setRefreshToken(refreshToken)
+        user=self.getProfile(refreshToken)
+    
+        id=user['data']['clientcode']
 
+        print(id)
+
+        self.setUserId(id)
+        user['data']['jwtToken']="Bearer "+jwtToken
+        user['data']['refreshToken']=refreshToken
+        return user
     
     def terminateSession(self,clientCode):
         logoutResponseObject=self._postRequest("api.logout",{"clientcode":clientCode})
@@ -264,14 +263,14 @@ class SmartConnect(object):
             "refreshToken": self.refresh_token,
             #"checksum": checksum
         })
-
+       
         tokenSet={}
 
         if "jwtToken" in response:
             tokenSet['jwtToken']=response['data']['jwtToken']
         tokenSet['clientcode']=self.userId
         tokenSet['refreshToken']=response['data']["refreshToken"]
-        print(tokenSet)
+       
         return tokenSet
 
     def getProfile(self,refreshToken):
@@ -281,13 +280,13 @@ class SmartConnect(object):
     def placeOrder(self,orderparams):
         #params = {"exchange":orderparams.exchange,"symbolToken":orderparams.symboltoken,"transactionType":orderparams.transactionType,"quantity":orderparams.quantity,"price":orderparams.price,"productType":orderparams.producttype,"orderType":orderparams.ordertype,"duration":orderparams.duration,"variety":orderparams.variety,"tradingSymbol":orderparams.tradingsymbol,"triggerPrice":orderparams.trigger_price,"squareoff":orderparams.squareoff,"stoploss":orderparams.stoploss,"trailingStoploss":orderparams.trailing_stoploss,"tag":orderparams.tag}
         params=orderparams
-        print("placeOrder params",params)
+       
         for k in list(params.keys()):
             if params[k] is None :
                 del(params[k])
         
         orderResponse= self._postRequest("api.order.place", params)['data']['orderid']
-        print("The placeOrder",orderResponse)
+
         return orderResponse
     
     def modifyOrder(self,orderparams):
@@ -348,8 +347,3 @@ class SmartConnect(object):
     def _user_agent(self):
         return (__title__ + "-python/").capitalize() + __version__   
 
-
-
-
-
-                
