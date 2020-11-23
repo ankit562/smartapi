@@ -1,17 +1,39 @@
 # package import statement
-from smartapi import smartConnect as sc
+from smartapi.smartConnect import SmartConnect
 
-# creating object of the class SmartConnect
-obj = sc.SmartConnect()
+obj=SmartConnect()
+#login api call
 
+data = obj.generateSession('D88311','Angel@444')
+refreshToken= data['data']['refreshToken']
 
-# function to call the login api
+#fetch User Profile
+userProfile= obj.getProfile(refreshToken)
 
-def loginApiCall(clientcode, password):
-    print(clientcode, password)
-    login_response = obj.generateSession(clientcode, password)
-    print("Logged in Successfully")
-    return login_response
+#place order
+try:
+    orderparams = {
+        "variety": "NORMAL",
+        "tradingsymbol": "SBIN-EQ",
+        "symboltoken": "3045",
+        "transactiontype": "BUY",
+        "exchange": "NSE",
+        "ordertype": "LIMIT",
+        "producttype": "INTRADAY",
+        "duration": "DAY",
+        "price": "19500",
+        "squareoff": "0",
+        "stoploss": "0",
+        "quantity": "1"
+        }
+    orderId=obj.placeOrder(orderparams)
+    print("The order id is: {}".format(orderId))
+except Exception as e:
+    print("Order placement failed: {}".format(e.message))
 
-
-print(loginApiCall('D88311', 'Angel@444'))
+#logout
+try:
+    logout=obj.terminateSession('D88311')
+    print("Logout Successfull")
+except Exception as e:
+    print("Logout failed: {}".format(e.message))

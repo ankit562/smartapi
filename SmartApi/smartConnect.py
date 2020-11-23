@@ -21,10 +21,12 @@ log = logging.getLogger(__name__)
 
 class SmartConnect(object):
     _rootUrl = "https://openapisuat.angelbroking.com"
-    _loginUrl = "https://openapisuat.angelbroking.com/login-service/rest/auth/angelbroking/user/v1/loginByPassword"
+    _loginUrl = "https://openapisuat.angelbroking.com/rest/auth/angelbroking/user/v1/loginByPassword"
+    _login_url ="https://smartapi.angelbroking.com/login"
     _default_timeout = 7  # In seconds
     # Products
     PRODUCT_MIS = "MIS"
+
     PRODUCT_CNC = "CNC"
     PRODUCT_NRML = "NRML"
     PRODUCT_CO = "CO"
@@ -57,6 +59,7 @@ class SmartConnect(object):
     EXCHANGE_CDS = "CDS"
     EXCHANGE_BFO = "BFO"
     EXCHANGE_MCX = "MCX"
+    EXCHANGE_NCDEX="NCDEX"
 
     # Status constants
     STATUS_COMPLETE = "COMPLETE"
@@ -64,23 +67,23 @@ class SmartConnect(object):
     STATUS_CANCELLED = "CANCELLED"
 
     _routes = {
-        "api.login":"/login-service/rest/auth/angelbroking/user/v1/loginByPassword",
-        "api.logout":"/login-service/rest/secure/angelbroking/user/v1/logout",
-        "api.token": "/login-service/rest/auth/angelbroking/jwt/v1/generateTokens",
-        "api.refresh": "/login-service/rest/auth/angelbroking/jwt/v1/generateTokens",
-        "api.user.profile": "/login-service/rest/secure/angelbroking/user/v1/getProfile",
+        "api.login":"/rest/auth/angelbroking/user/v1/loginByPassword",
+        "api.logout":"/rest/secure/angelbroking/user/v1/logout",
+        "api.token": "/rest/auth/angelbroking/jwt/v1/generateTokens",
+        "api.refresh": "/rest/auth/angelbroking/jwt/v1/generateTokens",
+        "api.user.profile": "/rest/secure/angelbroking/user/v1/getProfile",
 
-        "api.order.place": "/order-service/rest/secure/angelbroking/order/v1/placeOrder",
-        "api.order.modify": "/order-service/rest/secure/angelbroking/order/v1/modifyOrder",
-        "api.order.cancel": "/order-service/rest/secure/angelbroking/order/v1/cancelOrder",
-        "api.order.book":"/order-service/rest/secure/angelbroking/order/v1/getOrderBook",
+        "api.order.place": "/rest/secure/angelbroking/order/v1/placeOrder",
+        "api.order.modify": "/rest/secure/angelbroking/order/v1/modifyOrder",
+        "api.order.cancel": "/rest/secure/angelbroking/order/v1/cancelOrder",
+        "api.order.book":"/rest/secure/angelbroking/order/v1/getOrderBook",
         
-        "api.ltp.data": "/order-service/rest/secure/angelbroking/order/v1/getLtpData",
-        "api.trade.book": "/order-service/rest/secure/angelbroking/order/v1/getTradeBook",
-        "api.rms.limit": "/order-service/rest/secure/angelbroking/rms/v1/getRMS",
-        "api.holding": "/order-service/rest/secure/angelbroking/rms/v1/getHolding",
-        "api.position": "/order-service/rest/secure/angelbroking/rms/v1/getPosition",
-        "api.convert.position": "/order-service/rest/secure/angelbroking/rms/v1/convertPosition"
+        "api.ltp.data": "/rest/secure/angelbroking/order/v1/getLtpData",
+        "api.trade.book": "/rest/secure/angelbroking/order/v1/getTradeBook",
+        "api.rms.limit": "/rest/secure/angelbroking/user/v1/getRMS",
+        "api.holding": "/rest/secure/angelbroking/portfolio/v1/getHolding",
+        "api.position": "/rest/secure/angelbroking/order/v1/getPosition",
+        "api.convert.position": "/rest/secure/angelbroking/order/v1/convertPosition"
     }
 
     def __init__(self, api_key=None, access_token=None, refresh_token=None, userId=None, root=None, debug=False, timeout=None, proxies=None, pool=None, disable_ssl=False):
@@ -125,15 +128,18 @@ class SmartConnect(object):
 
         self.refresh_token = refresh_token
     
+    def login_url(self):
+        """Get the remote login url to which a user should be redirected to initiate the login flow."""
+        return "%s?api_key=%s" % (self._login_url, self.api_key)
     
     def _request(self, route, method, parameters=None):
         """Make an HTTP request."""
         params = parameters.copy() if parameters else {}
        
         uri =self._routes[route].format(**params)
-        #print(uri)
+        print(uri)
         url = urljoin(self.root, uri)
-      
+        print(url)
         hostname = socket.gethostname() 
         clientLocalIP=socket.gethostbyname(hostname)
         clientPublicIP=get('https://api.ipify.org').text
@@ -177,7 +183,7 @@ class SmartConnect(object):
                                         allow_redirects=True,
                                         timeout=self.timeout,
                                         proxies=self.proxies)
-            print(r)
+            print("The Response Content",r.content)
         except Exception as e:
             raise e
 
@@ -235,12 +241,13 @@ class SmartConnect(object):
         user=self.getProfile(refreshToken)
     
         id=user['data']['clientcode']
-
+        #id='D88311'
         print(id)
 
         self.setUserId(id)
         user['data']['jwtToken']="Bearer "+jwtToken
         user['data']['refreshToken']=refreshToken
+        print("USER",user)
         return user
     
     def terminateSession(self,clientCode):
@@ -275,6 +282,7 @@ class SmartConnect(object):
 
     def getProfile(self,refreshToken):
         user=self._getRequest("api.user.profile",{"refreshToken":refreshToken})
+        print("USER PROFILE",user)
         return user
     
     def placeOrder(self,orderparams):
@@ -340,7 +348,7 @@ class SmartConnect(object):
         for k in list(params.keys()):
             if params[k] is None:
                 del(params[k])
-        convertPositionResponse= self._postRequest("api.position.convert",params)
+        convertPositionResponse= self._postRequest("api.convert.position",params)
 
         return convertPositionResponse
 
