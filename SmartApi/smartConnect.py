@@ -1,7 +1,6 @@
 from six.moves.urllib.parse import urljoin
 import sys
 
-sys.path.append('c:\AngelSmartApi\SmartApi')
 import csv
 import json
 import dateutil.parser
@@ -243,12 +242,13 @@ class SmartConnect(object):
     
         id=user['data']['clientcode']
         #id='D88311'
-        print(id)
+        #
+        #print(id)
 
         self.setUserId(id)
         user['data']['jwtToken']="Bearer "+jwtToken
         user['data']['refreshToken']=refreshToken
-        print("USER",user)
+        #print("USER",user)
         return user
     
     def terminateSession(self,clientCode):

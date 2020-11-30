@@ -14,7 +14,7 @@ pip install smartapi-python
 
 ```python
 # package import statement
-from smartapi import SmartConnect
+from smartapi.smartConnect import SmartConnect
 
 #create object of call
 obj=SmartConnect()
@@ -55,7 +55,7 @@ except Exception as e:
     print("Logout failed: {}".format(e.message))
 
 #websocket
-from smartapi import SmartSocket
+from smartapi.smartSocket import SmartSocket
 FEED_TOKEN= "your feed token"
 CLIENT_CODE="your client code"
 token="channel you want the information of" #"nse_cm|2885&nse_cm|1594&nse_cm|11536"
