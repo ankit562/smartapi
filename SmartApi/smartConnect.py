@@ -94,7 +94,7 @@ class SmartConnect(object):
         self.refresh_token = refresh_token
         self.userId = userId
         self.proxies = proxies if proxies else {}
-        self.root = root or self._login_url
+        self.root = root or self._rootUrl
         self.timeout = timeout or self._default_timeout
 
         if pool:

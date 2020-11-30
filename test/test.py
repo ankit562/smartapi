@@ -8,11 +8,11 @@ dir = os.getcwd()
 sys.path.append(dir + "\SmartApi")
 #print(sys.path)
 
-from smartapi.smartConnect import SmartConnect
+from smartConnect import SmartConnect
 
 smartApi =SmartConnect()
 
-login = smartApi.generateSession('D88311', 'Angel@444')
+login = smartApi.generateSession('S212741', 'pass@123')
 print(login)
 refreshToken = login['data']['refreshToken']
 smartApi.getProfile(refreshToken)
