@@ -8,9 +8,10 @@ dir = os.getcwd()
 sys.path.append(dir + "\SmartApi")
 #print(sys.path)
 
-import smartConnect
+from smartapi import SmartConnect
 
-smartApi = smartConnect.SmartConnect()
+smartApi =
+SmartConnect()
 
 login = smartApi.generateSession('D88311', 'Angel@444')
 print(login)
@@ -72,7 +73,7 @@ params={
 smartApi.convertPosition(params)
 smartApi.terminateSession('D88311')
 
-from smartSocket import SmartSocket
+from smartapi import SmartSocket
 FEED_TOKEN='1731759952'
 CLIENT_CODE='S212741'
 token=None
