@@ -1,31 +1,15 @@
-# SMARTAPI-PYTHON
-
-SMARTAPI-PYTHON is a Python library for dealing AMX,that is a set of REST-like HTTP APIs that expose many capabilities required to build stock market investment and trading platforms. It lets you execute orders in real time.
-
-## Installation
-
-Use the package manager [pip](https://pip.pypa.io/en/stable/) to install smartapi-python.
-
-```bash
-pip install smartapi-python
-```
-
-## Usage
-
-```python
 # package import statement
 from smartapi.smartConnect import SmartConnect
 
-#create object of call
 obj=SmartConnect()
-
 #login api call
 
-data = obj.generateSession("D88311","Angel@444")
+data = obj.generateSession('D88311','Angel@444')
 refreshToken= data['data']['refreshToken']
 
 #fetch User Profile
 userProfile= obj.getProfile(refreshToken)
+
 #place order
 try:
     orderparams = {
@@ -53,9 +37,3 @@ try:
     print("Logout Successfull")
 except Exception as e:
     print("Logout failed: {}".format(e.message))
-
-
-License
-MIT
-
-
