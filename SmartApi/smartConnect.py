@@ -21,8 +21,9 @@ log = logging.getLogger(__name__)
 
 class SmartConnect(object):
     _rootUrl = "https://openapisuat.angelbroking.com"
-    _loginUrl = "https://openapisuat.angelbroking.com/rest/auth/angelbroking/user/v1/loginByPassword"
+    #_rootUrl="https://apiconnect.angelbroking.com"
     _login_url ="https://smartapi.angelbroking.com/login"
+    #_login_url="https://smartapi.angelbroking.com/publisher-login"
     _default_timeout = 7  # In seconds
     # Products
     PRODUCT_MIS = "MIS"
