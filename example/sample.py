@@ -1,5 +1,5 @@
 # package import statement
-from smartapi.smartConnect import SmartConnect
+from smartapi import SmartConnect
 
 obj=SmartConnect()
 #login api call
