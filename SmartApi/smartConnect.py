@@ -1,7 +1,5 @@
 from six.moves.urllib.parse import urljoin
 import sys
-
-sys.path.append('c:\AngelSmartApi\SmartApi')
 import csv
 import json
 import dateutil.parser
