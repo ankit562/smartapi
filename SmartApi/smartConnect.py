@@ -143,7 +143,7 @@ class SmartConnect(object):
         clientLocalIP=socket.gethostbyname(hostname)
         clientPublicIP=get('https://api.ipify.org').text
         macAddress = ':'.join(re.findall('..', '%012x' % uuid.getnode()))
-        privateKey = "test"
+        privateKey = self.api_key
         accept = "application/json"
         userType = "USER"
         sourceID = "WEB"

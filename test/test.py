@@ -10,13 +10,13 @@ sys.path.append(dir + "\SmartApi")
 
 from smartConnect import SmartConnect
 
-smartApi =SmartConnect()
+smartApi =SmartConnect(api_key="smartapi_key")
 
-login = smartApi.generateSession('S212741', 'pass@123')
+login = smartApi.generateSession('Your client id', 'Password')
 print(login)
 refreshToken = login['data']['refreshToken']
 smartApi.getProfile(refreshToken)
-smartApi.generateToken(refreshToken)
+#smartApi.generateToken(refreshToken)
 orderparams = {
     "variety": "NORMAL",
     "tradingsymbol": "SBIN-EQ",
@@ -70,11 +70,11 @@ params={
 }
 
 smartApi.convertPosition(params)
-smartApi.terminateSession('D88311')
+smartApi.terminateSession('Your client code')
 
 from smartapi.smartSocket import SmartSocket
-FEED_TOKEN='1731759952'
-CLIENT_CODE='S212741'
+FEED_TOKEN='feedToken' #'1731759952'
+CLIENT_CODE='Your client id' #'S212741'
 token=None
 ss = SmartSocket(FEED_TOKEN, CLIENT_CODE)
 def on_tick(ws, tick):

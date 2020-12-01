@@ -4,7 +4,7 @@ from smartapi.smartConnect import SmartConnect
 obj=SmartConnect()
 #login api call
 
-data = obj.generateSession('D88311','Angel@444')
+data = obj.generateSession('Your Client Id','Password')
 refreshToken= data['data']['refreshToken']
 
 #fetch User Profile

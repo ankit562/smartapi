@@ -17,11 +17,11 @@ pip install smartapi-python
 from smartapi.smartConnect import SmartConnect
 
 #create object of call
-obj=SmartConnect()
+obj=SmartConnect(api_key="your api key")
 
 #login api call
 
-data = obj.generateSession("D88311","Angel@444")
+data = obj.generateSession("Your Client ID","Your Password")
 refreshToken= data['data']['refreshToken']
 
 #fetch User Profile
@@ -57,7 +57,7 @@ except Exception as e:
 #websocket
 from smartapi.smartSocket import SmartSocket
 FEED_TOKEN= "your feed token"
-CLIENT_CODE="your client code"
+CLIENT_CODE="your client Id"
 token="channel you want the information of" #"nse_cm|2885&nse_cm|1594&nse_cm|11536"
 
 ss = SmartSocket(FEED_TOKEN, CLIENT_CODE)
