@@ -49,7 +49,7 @@ except Exception as e:
 
 #logout
 try:
-    logout=obj.terminateSession('D88311')
+    logout=obj.terminateSession('Your Client Id')
     print("Logout Successfull")
 except Exception as e:
     print("Logout failed: {}".format(e.message))
