@@ -1,7 +1,10 @@
-import sys
-import os
 
-from smartConnect import SmartConnect
+from smartapi import SmartConnect
+
+#---------for smartExceptions---------
+#import smartapi.smartExceptions
+#or
+#from smartapi import smartExceptions
 
 smartApi =SmartConnect(api_key="Your Api Key")
 
@@ -63,9 +66,11 @@ params={
 }
 
 smartApi.convertPosition(params)
-smartApi.terminateSession("Your Client Id")
+smartApi.terminateSession('S212741')
 
-from smartapi.smartSocket import SmartSocket
+## Websocket Programming
+
+from smartapi import SmartSocket
 FEED_TOKEN="Your Feed Token"
 CLIENT_CODE="Your Client Id"
 token=None
