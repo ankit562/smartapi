@@ -25,6 +25,9 @@ obj=SmartConnect(api_key="your api key")
 data = obj.generateSession("Your Client ID","Your Password")
 refreshToken= data['data']['refreshToken']
 
+#fetch the feedtoken
+feedToken=obj.getFeedToken()
+
 #fetch User Profile
 userProfile= obj.getProfile(refreshToken)
 #place order
@@ -56,7 +59,7 @@ except Exception as e:
     print("Logout failed: {}".format(e.message))
 
 ##------websocket------
-from smartapi import SmartSocket #or from smartapi.smartSocket import SmartSocket
+from smartapi import WebSocket #or from smartapi.smartSocket import SmartSocket
 FEED_TOKEN= "your feed token"
 CLIENT_CODE="your client Id"
 token="channel you want the information of" #"nse_cm|2885&nse_cm|1594&nse_cm|11536"
@@ -80,7 +83,6 @@ ss.on_close = on_close
 ss.connect( )
 
 
-License
-MIT
+
 
 

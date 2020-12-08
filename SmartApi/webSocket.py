@@ -7,6 +7,7 @@ import struct
 import logging
 import threading
 import base64
+import zlib
 from datetime import datetime
 from twisted.internet import reactor, ssl
 from twisted.python import log as twisted_log
@@ -15,6 +16,15 @@ from autobahn.twisted.websocket import WebSocketClientProtocol, \
 
 
 class SmartSocketClientProtocol(WebSocketClientProtocol):
+    PING_INTERVAL = 2.5
+    KEEPALIVE_INTERVAL = 5
+
+    _ping_message = ""
+    _next_ping = None
+    _next_pong_check = None
+    _last_pong_time = None
+    _last_ping_time = None
+
     def __init__(self, *args, **kwargs):
         super(SmartSocketClientProtocol,self).__init__(*args,**kwargs)
     
@@ -26,13 +36,20 @@ class SmartSocketClientProtocol(WebSocketClientProtocol):
             self.factory.on_connect(self, response)
     
     def onOpen(self):
+        # send ping
+        self._loop_ping()
+        # init last pong check after X seconds
+        self._loop_pong_check()
+
         if self.factory.on_open:
             self.factory.on_open(self)
+
     
     def onMessage(self, payload, is_binary):  # noqa
         #print("""Called when text or binary message is received.""",payload,is_binary)
         if self.factory.on_message:
             self.factory.on_message(self, payload, is_binary)
+        
 
     def onClose(self, was_clean, code, reason):  # noqa
         """Called when connection is closed."""
@@ -42,6 +59,61 @@ class SmartSocketClientProtocol(WebSocketClientProtocol):
 
         if self.factory.on_close:
             self.factory.on_close(self, code, reason)
+        # Cancel next ping and timer
+        self._last_ping_time = None
+        self._last_pong_time = None
+
+        if self._next_ping:
+            self._next_ping.cancel()
+
+        if self._next_pong_check:
+            self._next_pong_check.cancel()
+
+    def onPong(self, response):  # noqa
+        """Called when pong message is received."""
+        if self._last_pong_time and self.factory.debug:
+            log.debug("last pong was {} seconds back.".format(time.time() - self._last_pong_time))
+
+        self._last_pong_time = time.time()
+
+        if self.factory.debug:
+            log.debug("pong => {}".format(response))
+
+    """
+    Custom helper and exposed methods.
+    """
+    def _loop_ping(self): # noqa
+        """Start a ping loop where it sends ping message every X seconds."""
+        if self.factory.debug:
+            log.debug("ping => {}".format(self._ping_message))
+            if self._last_ping_time:
+                log.debug("last ping was {} seconds back.".format(time.time() - self._last_ping_time))
+
+        # Set current time as last ping time
+        self._last_ping_time = time.time()
+        # Send a ping message to server
+        self.sendPing(self._ping_message)
+
+        # Call self after X seconds
+        self._next_ping = self.factory.reactor.callLater(self.PING_INTERVAL, self._loop_ping)
+
+    def _loop_pong_check(self):
+        """
+        Timer sortof to check if connection is still there.
+        Checks last pong message time and disconnects the existing connection to make sure it doesn't become a ghost connection.
+        """
+        if self._last_pong_time:
+            # No pong message since long time, so init reconnect
+            last_pong_diff = time.time() - self._last_pong_time
+            if last_pong_diff > (2 * self.PING_INTERVAL):
+                if self.factory.debug:
+                    log.debug("Last pong was {} seconds ago. So dropping connection to reconnect.".format(
+                        last_pong_diff))
+                # drop existing connection to avoid ghost connection
+                self.dropConnection(abort=True)
+
+        # Call self after X seconds
+        self._next_pong_check = self.factory.reactor.callLater(self.PING_INTERVAL, self._loop_pong_check)
 
 class SmartSocketClientFactory(WebSocketClientFactory):
     protocol = SmartSocketClientProtocol
@@ -141,6 +213,7 @@ class SmartSocket(object):
             return True
         else:
             return False
+
     def _close(self, code=None, reason=None):
         #print("Close the WebSocket connection.")
         if self.ws:
@@ -158,9 +231,8 @@ class SmartSocket(object):
         reactor.stop()
 
     def send_request(self,token):
-        #print('Request Send')
-        strwatchlistscrips = token # "nse_cm|2885&nse_cm|1594&nse_cm|11536"
-        #token_scripts= token //dynamic call
+        strwatchlistscrips = token #dynamic call
+        
         try:
             #print("Inside")
             request={"task":"cn","channel":"","token":self.feed_token,"user":self.client_code,"acctid":self.client_code}
@@ -168,7 +240,7 @@ class SmartSocket(object):
                 six.b(json.dumps(request))
             )
             #print(request)
-            request={"task":"cn","channel":strwatchlistscrips,"token":self.feed_token,"user":self.client_code,"acctid":self.client_code}
+            request={"task":"mw","channel":strwatchlistscrips,"token":self.feed_token,"user":self.client_code,"acctid":self.client_code}
             #print(request)
             #request={"task":"cn","channel":token_scripts,"token":self.feed_token,"user":self.client_code,"acctid":self.client_code} //dynamic call
             self.ws.sendMessage(
@@ -187,14 +259,14 @@ class SmartSocket(object):
 
     def _on_close(self, ws, code, reason):
         """Call `on_close` callback when connection is closed."""
-        print("Connection closed: {} - {}".format(code, str(reason)))
+        log.debug("Connection closed: {} - {}".format(code, str(reason)))
 
         if self.on_close:
             self.on_close(self, code, reason)
 
     def _on_error(self, ws, code, reason):
         """Call `on_error` callback when connection throws an error."""
-        print("Connection error: {} - {}".format(code, str(reason)))
+        log.debug("Connection error: {} - {}".format(code, str(reason)))
 
         if self.on_error:
             self.on_error(self, code, reason)
@@ -221,13 +293,16 @@ class SmartSocket(object):
         # Decode unicode data
         if not six.PY2 and type(payload) == bytes:
             payload = payload.decode("utf-8")
-            print("PAYLOAD",payload)
+            
             data =base64.b64decode(payload)
-            print("DATA",data)
+            
+
         try:
-            data = json.loads(payload)
-            print("DATA",data)
+            data=zlib.decompress(data)
+            print(data.decode("utf-8"))
+
         except ValueError:
+   
             return
 
         def _parse_binary(self, bin):

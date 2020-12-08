@@ -1,4 +1,3 @@
-
 from smartapi import SmartConnect
 
 #---------for smartExceptions---------
@@ -11,6 +10,7 @@ smartApi =SmartConnect(api_key="Your Api Key")
 login = smartApi.generateSession('Your Client Id', 'Your Password')
 print(login)
 refreshToken = login['data']['refreshToken']
+feedToken = smartApi.getfeedToken()
 smartApi.getProfile(refreshToken)
 smartApi.generateToken(refreshToken)
 orderparams = {
@@ -66,11 +66,11 @@ params={
 }
 
 smartApi.convertPosition(params)
-smartApi.terminateSession('S212741')
+smartApi.terminateSession('Your Client Id')
 
 ## Websocket Programming
 
-from smartapi import SmartSocket
+from smartapi import WebSocket
 FEED_TOKEN="Your Feed Token"
 CLIENT_CODE="Your Client Id"
 token=None
@@ -89,5 +89,3 @@ ss.on_connect = on_connect
 ss.on_close = on_close
 
 ss.connect( )
-
-

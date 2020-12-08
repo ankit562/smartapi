@@ -85,13 +85,14 @@ class SmartConnect(object):
         "api.convert.position": "/rest/secure/angelbroking/order/v1/convertPosition"
     }
 
-    def __init__(self, api_key=None, access_token=None, refresh_token=None, userId=None, root=None, debug=False, timeout=None, proxies=None, pool=None, disable_ssl=False):
+    def __init__(self, api_key=None, access_token=None, refresh_token=None,feed_token=None, userId=None, root=None, debug=False, timeout=None, proxies=None, pool=None, disable_ssl=False):
         self.debug = debug
         self.api_key = api_key
         self.session_expiry_hook = None
         self.disable_ssl = disable_ssl
         self.access_token = access_token
         self.refresh_token = refresh_token
+        self.feed_token = feed_token
         self.userId = userId
         self.proxies = proxies if proxies else {}
         self.root = root or self._rootUrl
@@ -126,6 +127,14 @@ class SmartConnect(object):
     def setRefreshToken(self, refresh_token):
 
         self.refresh_token = refresh_token
+
+    def setFeedToken(self,feedToken):
+        
+        self.feed_token=feedToken
+
+    def getfeedToken(self):
+        return self.feed_token
+
     
     def login_url(self):
         """Get the remote login url to which a user should be redirected to initiate the login flow."""
@@ -236,16 +245,17 @@ class SmartConnect(object):
         jwtToken=loginResultObject['data']['jwtToken']
         self.setAccessToken(jwtToken)
         refreshToken=loginResultObject['data']['refreshToken']
+        feedToken=loginResultObject['data']['feedToken']
         self.setRefreshToken(refreshToken)
+        self.setFeedToken(feedToken)
         user=self.getProfile(refreshToken)
     
         id=user['data']['clientcode']
         #id='D88311'
-        print(id)
-
         self.setUserId(id)
         user['data']['jwtToken']="Bearer "+jwtToken
         user['data']['refreshToken']=refreshToken
+
         print("USER",user)
         return user
     
@@ -256,7 +266,10 @@ class SmartConnect(object):
     def generateToken(self,refresh_token):
         response=self._postRequest('api.token',{"refreshToken":refresh_token})
         jwtToken=response['data']['jwtToken']
+        feedToken=response['data']['feedToken']
+        self.setFeedToken(feedToken)
         self.setAccessToken(jwtToken)
+
         return response
 
     def renewAccessToken(self):
