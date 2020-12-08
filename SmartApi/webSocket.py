@@ -132,7 +132,7 @@ class SmartSocketClientFactory(WebSocketClientFactory):
         super(SmartSocketClientFactory, self).__init__(*args, **kwargs)
 
 
-class SmartSocket(object):
+class WebSocket(object):
     EXCHANGE_MAP = {
         "nse": 1,
         "nfo": 2,
