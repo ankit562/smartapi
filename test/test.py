@@ -74,7 +74,7 @@ from smartapi import WebSocket
 FEED_TOKEN="Your Feed Token"
 CLIENT_CODE="Your Client Id"
 token=None
-ss = SmartSocket(FEED_TOKEN, CLIENT_CODE)
+ss = WebSocket(FEED_TOKEN, CLIENT_CODE)
 def on_tick(ws, tick):
     print("Ticks: {}".format(tick))
 def on_connect(ws, response):

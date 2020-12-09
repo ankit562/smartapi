@@ -59,12 +59,12 @@ except Exception as e:
     print("Logout failed: {}".format(e.message))
 
 ##------websocket------
-from smartapi import WebSocket #or from smartapi.smartSocket import SmartSocket
+from smartapi import WebSocket 
 FEED_TOKEN= "your feed token"
 CLIENT_CODE="your client Id"
 token="channel you want the information of" #"nse_cm|2885&nse_cm|1594&nse_cm|11536"
 
-ss = SmartSocket(FEED_TOKEN, CLIENT_CODE)
+ss = WebSocket(FEED_TOKEN, CLIENT_CODE)
 
 def on_tick(ws, tick):
     print("Ticks: {}".format(tick))
