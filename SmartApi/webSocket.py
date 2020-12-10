@@ -14,6 +14,7 @@ from twisted.python import log as twisted_log
 from autobahn.twisted.websocket import WebSocketClientProtocol, \
     WebSocketClientFactory, connectWS
 
+log = logging.getLogger(__name__)
 
 class SmartSocketClientProtocol(WebSocketClientProtocol):
     PING_INTERVAL = 2.5
