@@ -26,7 +26,7 @@ data = obj.generateSession("Your Client ID","Your Password")
 refreshToken= data['data']['refreshToken']
 
 #fetch the feedtoken
-feedToken=obj.getFeedToken()
+feedToken=obj.getfeedToken()
 
 #fetch User Profile
 userProfile= obj.getProfile(refreshToken)
