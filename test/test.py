@@ -8,11 +8,15 @@ from smartapi import SmartConnect
 smartApi =SmartConnect(api_key="Your Api Key")
 
 login = smartApi.generateSession('Your Client Id', 'Your Password')
-print(login)
+
 refreshToken = login['data']['refreshToken']
+
 feedToken = smartApi.getfeedToken()
+
 smartApi.getProfile(refreshToken)
+
 smartApi.generateToken(refreshToken)
+
 orderparams = {
     "variety": "NORMAL",
     "tradingsymbol": "SBIN-EQ",
@@ -46,14 +50,20 @@ smartApi.modifyOrder(modifyparams)
 smartApi.cancelOrder(orderid, "NORMAL")
 
 smartApi.orderBook()
+
 smartApi.tradeBook()
+
 smartApi.rmsLimit()
+
 smartApi.position()
+
 smartApi.holding()
+
 exchange = "NSE"
 tradingsymbol = "SBIN-EQ"
 symboltoken = 3045
 smartApi.ltpData("NSE", "SBIN-EQ", "3045")
+
 params={
     "exchange": "NSE",
     "oldproducttype":"DELIVERY",
@@ -66,20 +76,22 @@ params={
 }
 
 smartApi.convertPosition(params)
+
 smartApi.terminateSession('Your Client Id')
 
 ## Websocket Programming
 
 from smartapi import WebSocket
-FEED_TOKEN="Your Feed Token"
+FEED_TOKEN=feedToken 
 CLIENT_CODE="Your Client Id"
 token=None
 ss = WebSocket(FEED_TOKEN, CLIENT_CODE)
 def on_tick(ws, tick):
     print("Ticks: {}".format(tick))
+
 def on_connect(ws, response):
-    a=ws.send_request(token)
-    print("Back to Function",a)
+    ws.send_request(token)
+
 def on_close(ws, code, reason):
     ws.stop()
 

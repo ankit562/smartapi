@@ -58,7 +58,7 @@ try:
 except Exception as e:
     print("Logout failed: {}".format(e.message))
 
-##------websocket------
+## WebSocket
 from smartapi import WebSocket 
 FEED_TOKEN= "your feed token"
 CLIENT_CODE="your client Id"

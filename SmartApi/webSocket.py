@@ -17,14 +17,6 @@ from autobahn.twisted.websocket import WebSocketClientProtocol, \
 log = logging.getLogger(__name__)
 
 class SmartSocketClientProtocol(WebSocketClientProtocol):
-    PING_INTERVAL = 2.5
-    KEEPALIVE_INTERVAL = 5
-
-    _ping_message = ""
-    _next_ping = None
-    _next_pong_check = None
-    _last_pong_time = None
-    _last_ping_time = None
 
     def __init__(self, *args, **kwargs):
         super(SmartSocketClientProtocol,self).__init__(*args,**kwargs)
@@ -37,11 +29,6 @@ class SmartSocketClientProtocol(WebSocketClientProtocol):
             self.factory.on_connect(self, response)
     
     def onOpen(self):
-        # send ping
-        self._loop_ping()
-        # init last pong check after X seconds
-        self._loop_pong_check()
-
         if self.factory.on_open:
             self.factory.on_open(self)
 
@@ -60,61 +47,7 @@ class SmartSocketClientProtocol(WebSocketClientProtocol):
 
         if self.factory.on_close:
             self.factory.on_close(self, code, reason)
-        # Cancel next ping and timer
-        self._last_ping_time = None
-        self._last_pong_time = None
 
-        if self._next_ping:
-            self._next_ping.cancel()
-
-        if self._next_pong_check:
-            self._next_pong_check.cancel()
-
-    def onPong(self, response):  # noqa
-        """Called when pong message is received."""
-        if self._last_pong_time and self.factory.debug:
-            log.debug("last pong was {} seconds back.".format(time.time() - self._last_pong_time))
-
-        self._last_pong_time = time.time()
-
-        if self.factory.debug:
-            log.debug("pong => {}".format(response))
-
-    """
-    Custom helper and exposed methods.
-    """
-    def _loop_ping(self): # noqa
-        """Start a ping loop where it sends ping message every X seconds."""
-        if self.factory.debug:
-            log.debug("ping => {}".format(self._ping_message))
-            if self._last_ping_time:
-                log.debug("last ping was {} seconds back.".format(time.time() - self._last_ping_time))
-
-        # Set current time as last ping time
-        self._last_ping_time = time.time()
-        # Send a ping message to server
-        self.sendPing(self._ping_message)
-
-        # Call self after X seconds
-        self._next_ping = self.factory.reactor.callLater(self.PING_INTERVAL, self._loop_ping)
-
-    def _loop_pong_check(self):
-        """
-        Timer sortof to check if connection is still there.
-        Checks last pong message time and disconnects the existing connection to make sure it doesn't become a ghost connection.
-        """
-        if self._last_pong_time:
-            # No pong message since long time, so init reconnect
-            last_pong_diff = time.time() - self._last_pong_time
-            if last_pong_diff > (2 * self.PING_INTERVAL):
-                if self.factory.debug:
-                    log.debug("Last pong was {} seconds ago. So dropping connection to reconnect.".format(
-                        last_pong_diff))
-                # drop existing connection to avoid ghost connection
-                self.dropConnection(abort=True)
-
-        # Call self after X seconds
-        self._next_pong_check = self.factory.reactor.callLater(self.PING_INTERVAL, self._loop_pong_check)
 
 class SmartSocketClientFactory(WebSocketClientFactory):
     protocol = SmartSocketClientProtocol
@@ -225,9 +158,7 @@ class WebSocket(object):
         self._close(code, reason)
 
     def stop(self):
-        """Stop the event loop. Should be used if main thread has to be closed in `on_close` method.
-        Reconnection mechanism cannot happen past this method
-        """
+        """Stop the event loop. Should be used if main thread has to be closed in `on_close` method."""
         #print("stop")
         reactor.stop()
 
@@ -242,11 +173,11 @@ class WebSocket(object):
             )
             #print(request)
             request={"task":"mw","channel":strwatchlistscrips,"token":self.feed_token,"user":self.client_code,"acctid":self.client_code}
-            #print(request)
-            #request={"task":"cn","channel":token_scripts,"token":self.feed_token,"user":self.client_code,"acctid":self.client_code} //dynamic call
+            
             self.ws.sendMessage(
                 six.b(json.dumps(request))
             )
+            threading.Thread(target=self.heartBeat,daemon=True).start()
             #print(request)
             return True
         except Exception as e:
@@ -289,6 +220,18 @@ class WebSocket(object):
         if self.on_open:
             return self.on_open(self)
 
+    def heartBeat(self):
+        while True:
+            try:
+                request={"task":"hb","channel":"","token":self.feed_token,"user":self.client_code,"acctid":self.client_code}
+                self.ws.sendMessage(
+                    six.b(json.dumps(request))
+                )
+        
+            except:
+                print("HeartBeats Failed")
+            time.sleep(60)
+
     def _parse_text_message(self, payload):
         """Parse text message."""
         # Decode unicode data
@@ -297,63 +240,63 @@ class WebSocket(object):
             
             data =base64.b64decode(payload)
             
-
         try:
-            data=zlib.decompress(data)
-            print(data.decode("utf-8"))
-
+            data = bytes((zlib.decompress(data)).decode("utf-8"), 'utf-8')
+            data = json.loads(data.decode('utf8').replace("'", '"'))
+            data = json.loads(json.dumps(data, indent=4, sort_keys=True))
         except ValueError:
-   
             return
 
-        def _parse_binary(self, bin):
-            #print("""Parse binary data to a (list of) ticks structure.""")
-            packets = self._split_packets(bin)  # split data to individual ticks packet
-            data = []
+        self.on_ticks(self, data)
 
-            for packet in packets:
-                instrument_token = self._unpack_int(packet, 0, 4)
-                segment = instrument_token & 0xff  # Retrive segment constant from instrument_token
+    def _parse_binary(self, bin):
+        #print("""Parse binary data to a (list of) ticks structure.""")
+        packets = self._split_packets(bin)  # split data to individual ticks packet
+        data = []
 
-                divisor = 10000000.0 if segment == self.EXCHANGE_MAP["cds"] else 100.0
+        for packet in packets:
+            instrument_token = self._unpack_int(packet, 0, 4)
+            segment = instrument_token & 0xff  # Retrive segment constant from instrument_token
 
-                # All indices are not tradable
-                tradable = False if segment == self.EXCHANGE_MAP["indices"] else True
-                try:
-                    last_trade_time = datetime.fromtimestamp(self._unpack_int(packet, 44, 48))
-                except Exception:
-                    last_trade_time = None
+            divisor = 10000000.0 if segment == self.EXCHANGE_MAP["cds"] else 100.0
 
-                try:
-                    timestamp = datetime.fromtimestamp(self._unpack_int(packet, 60, 64))
-                except Exception:
-                    timestamp = None
+            # All indices are not tradable
+            tradable = False if segment == self.EXCHANGE_MAP["indices"] else True
+            try:
+                last_trade_time = datetime.fromtimestamp(self._unpack_int(packet, 44, 48))
+            except Exception:
+                last_trade_time = None
 
-                d["last_trade_time"] = last_trade_time
-                d["oi"] = self._unpack_int(packet, 48, 52)
-                d["oi_day_high"] = self._unpack_int(packet, 52, 56)
-                d["oi_day_low"] = self._unpack_int(packet, 56, 60)
-                d["timestamp"] = timestamp
+            try:
+                timestamp = datetime.fromtimestamp(self._unpack_int(packet, 60, 64))
+            except Exception:
+                timestamp = None
 
-                # Market depth entries.
-                depth = {
-                    "buy": [],
-                    "sell": []
-                }
+            d["last_trade_time"] = last_trade_time
+            d["oi"] = self._unpack_int(packet, 48, 52)
+            d["oi_day_high"] = self._unpack_int(packet, 52, 56)
+            d["oi_day_low"] = self._unpack_int(packet, 56, 60)
+            d["timestamp"] = timestamp
 
-                # Compile the market depth lists.
-                for i, p in enumerate(range(64, len(packet), 12)):
-                    depth["sell" if i >= 5 else "buy"].append({
-                        "quantity": self._unpack_int(packet, p, p + 4),
-                        "price": self._unpack_int(packet, p + 4, p + 8) / divisor,
-                        "orders": self._unpack_int(packet, p + 8, p + 10, byte_format="H")
-                    })
+            # Market depth entries.
+            depth = {
+                "buy": [],
+                "sell": []
+            }
 
-                d["depth"] = depth
+            # Compile the market depth lists.
+            for i, p in enumerate(range(64, len(packet), 12)):
+                depth["sell" if i >= 5 else "buy"].append({
+                    "quantity": self._unpack_int(packet, p, p + 4),
+                    "price": self._unpack_int(packet, p + 4, p + 8) / divisor,
+                    "orders": self._unpack_int(packet, p + 8, p + 10, byte_format="H")
+                })
 
-            data.append(d)
+            d["depth"] = depth
 
-            return data
+        data.append(d)
+
+        return data
 
     def _unpack_int(self, bin, start, end, byte_format="I"):
         """Unpack binary data as unsgined interger."""
