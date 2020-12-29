@@ -145,9 +145,7 @@ class SmartConnect(object):
         params = parameters.copy() if parameters else {}
        
         uri =self._routes[route].format(**params)
-        print(uri)
         url = urljoin(self.root, uri)
-        print(url)
         hostname = socket.gethostname() 
         clientLocalIP=socket.gethostbyname(hostname)
         clientPublicIP=get('https://api.ipify.org').text
@@ -191,7 +189,7 @@ class SmartConnect(object):
                                         allow_redirects=True,
                                         timeout=self.timeout,
                                         proxies=self.proxies)
-            print("The Response Content",r.content)
+            #print("The Response Content",r.content)
         except Exception as e:
             raise e
 
@@ -242,23 +240,26 @@ class SmartConnect(object):
         
         params={"clientcode":clientCode,"password":password}
         loginResultObject=self._postRequest("api.login",params)
-        jwtToken=loginResultObject['data']['jwtToken']
-        self.setAccessToken(jwtToken)
-        refreshToken=loginResultObject['data']['refreshToken']
-        feedToken=loginResultObject['data']['feedToken']
-        self.setRefreshToken(refreshToken)
-        self.setFeedToken(feedToken)
-        user=self.getProfile(refreshToken)
-    
-        id=user['data']['clientcode']
-        #id='D88311'
-        self.setUserId(id)
-        user['data']['jwtToken']="Bearer "+jwtToken
-        user['data']['refreshToken']=refreshToken
 
-        print("USER",user)
-        return user
-    
+        if loginResultObject['status']==True or true:
+            jwtToken=loginResultObject['data']['jwtToken']
+            self.setAccessToken(jwtToken)
+            refreshToken=loginResultObject['data']['refreshToken']
+            feedToken=loginResultObject['data']['feedToken']
+            self.setRefreshToken(refreshToken)
+            self.setFeedToken(feedToken)
+            user=self.getProfile(refreshToken)
+        
+            id=user['data']['clientcode']
+            #id='D88311'
+            self.setUserId(id)
+            user['data']['jwtToken']="Bearer "+jwtToken
+            user['data']['refreshToken']=refreshToken
+
+            #print("USER",user)
+            return user
+        else:
+            return 
     def terminateSession(self,clientCode):
         logoutResponseObject=self._postRequest("api.logout",{"clientcode":clientCode})
         return logoutResponseObject
@@ -294,7 +295,7 @@ class SmartConnect(object):
 
     def getProfile(self,refreshToken):
         user=self._getRequest("api.user.profile",{"refreshToken":refreshToken})
-        print("USER PROFILE",user)
+        #print("USER PROFILE",user)
         return user
     
     def placeOrder(self,orderparams):
