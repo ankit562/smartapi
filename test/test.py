@@ -1,22 +1,22 @@
-import sys
-import os
+from smartapi import SmartConnect
 
-dir = os.getcwd()
-#print(dir)
-#paths=dir.split("\")
+#---------for smartExceptions---------
+#import smartapi.smartExceptions
+#or
+#from smartapi import smartExceptions
 
-sys.path.append(dir + "\smartapi")
-#print(sys.path)
+smartApi =SmartConnect(api_key="Your Api Key")
 
-from smartapi.smartConnect import SmartConnect
+login = smartApi.generateSession('Your Client Id', 'Your Password')
 
-smartApi = SmartConnect()
-
-login = smartApi.generateSession('D88311', 'Angel@444')
-print(login)
 refreshToken = login['data']['refreshToken']
+
+feedToken = smartApi.getfeedToken()
+
 smartApi.getProfile(refreshToken)
+
 smartApi.generateToken(refreshToken)
+
 orderparams = {
     "variety": "NORMAL",
     "tradingsymbol": "SBIN-EQ",
@@ -50,14 +50,20 @@ smartApi.modifyOrder(modifyparams)
 smartApi.cancelOrder(orderid, "NORMAL")
 
 smartApi.orderBook()
+
 smartApi.tradeBook()
+
 smartApi.rmsLimit()
+
 smartApi.position()
+
 smartApi.holding()
+
 exchange = "NSE"
 tradingsymbol = "SBIN-EQ"
 symboltoken = 3045
 smartApi.ltpData("NSE", "SBIN-EQ", "3045")
+
 params={
     "exchange": "NSE",
     "oldproducttype":"DELIVERY",
@@ -70,18 +76,22 @@ params={
 }
 
 smartApi.convertPosition(params)
-smartApi.terminateSession('D88311')
 
-from smartapi.smartSocket import SmartSocket
-FEED_TOKEN='1731759952'
-CLIENT_CODE='S212741'
+smartApi.terminateSession('Your Client Id')
+
+## Websocket Programming
+
+from smartapi import WebSocket
+FEED_TOKEN=feedToken 
+CLIENT_CODE="Your Client Id"
 token=None
-ss = SmartSocket(FEED_TOKEN, CLIENT_CODE)
+ss = WebSocket(FEED_TOKEN, CLIENT_CODE)
 def on_tick(ws, tick):
     print("Ticks: {}".format(tick))
+
 def on_connect(ws, response):
-    a=ws.send_request(token)
-    print("Back to Function",a)
+    ws.send_request(token)
+
 def on_close(ws, code, reason):
     ws.stop()
 
@@ -91,5 +101,3 @@ ss.on_connect = on_connect
 ss.on_close = on_close
 
 ss.connect( )
-
-

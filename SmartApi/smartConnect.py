@@ -1,6 +1,5 @@
 from six.moves.urllib.parse import urljoin
 import sys
-
 import csv
 import json
 import dateutil.parser
@@ -19,10 +18,10 @@ log = logging.getLogger(__name__)
 
 
 class SmartConnect(object):
-    _rootUrl = "https://openapisuat.angelbroking.com"
-    #_rootUrl="https://apiconnect.angelbroking.com"
-    _login_url ="https://smartapi.angelbroking.com/login"
-    #_login_url="https://smartapi.angelbroking.com/publisher-login"
+    #_rootUrl = "https://openapisuat.angelbroking.com"
+    _rootUrl="https://apiconnect.angelbroking.com" #prod endpoint
+    #_login_url ="https://smartapi.angelbroking.com/login"
+    _login_url="https://smartapi.angelbroking.com/publisher-login" #prod endpoint
     _default_timeout = 7  # In seconds
     # Products
     PRODUCT_MIS = "MIS"
@@ -86,16 +85,17 @@ class SmartConnect(object):
         "api.convert.position": "/rest/secure/angelbroking/order/v1/convertPosition"
     }
 
-    def __init__(self, api_key=None, access_token=None, refresh_token=None, userId=None, root=None, debug=False, timeout=None, proxies=None, pool=None, disable_ssl=False):
+    def __init__(self, api_key=None, access_token=None, refresh_token=None,feed_token=None, userId=None, root=None, debug=False, timeout=None, proxies=None, pool=None, disable_ssl=False):
         self.debug = debug
         self.api_key = api_key
         self.session_expiry_hook = None
         self.disable_ssl = disable_ssl
         self.access_token = access_token
         self.refresh_token = refresh_token
+        self.feed_token = feed_token
         self.userId = userId
         self.proxies = proxies if proxies else {}
-        self.root = root or self._loginUrl
+        self.root = root or self._rootUrl
         self.timeout = timeout or self._default_timeout
 
         if pool:
@@ -127,6 +127,14 @@ class SmartConnect(object):
     def setRefreshToken(self, refresh_token):
 
         self.refresh_token = refresh_token
+
+    def setFeedToken(self,feedToken):
+        
+        self.feed_token=feedToken
+
+    def getfeedToken(self):
+        return self.feed_token
+
     
     def login_url(self):
         """Get the remote login url to which a user should be redirected to initiate the login flow."""
@@ -137,14 +145,12 @@ class SmartConnect(object):
         params = parameters.copy() if parameters else {}
        
         uri =self._routes[route].format(**params)
-        print(uri)
         url = urljoin(self.root, uri)
-        print(url)
         hostname = socket.gethostname() 
         clientLocalIP=socket.gethostbyname(hostname)
         clientPublicIP=get('https://api.ipify.org').text
         macAddress = ':'.join(re.findall('..', '%012x' % uuid.getnode()))
-        privateKey = "test"
+        privateKey = self.api_key
         accept = "application/json"
         userType = "USER"
         sourceID = "WEB"
@@ -183,7 +189,7 @@ class SmartConnect(object):
                                         allow_redirects=True,
                                         timeout=self.timeout,
                                         proxies=self.proxies)
-            print("The Response Content",r.content)
+            #print("The Response Content",r.content)
         except Exception as e:
             raise e
 
@@ -234,23 +240,26 @@ class SmartConnect(object):
         
         params={"clientcode":clientCode,"password":password}
         loginResultObject=self._postRequest("api.login",params)
-        jwtToken=loginResultObject['data']['jwtToken']
-        self.setAccessToken(jwtToken)
-        refreshToken=loginResultObject['data']['refreshToken']
-        self.setRefreshToken(refreshToken)
-        user=self.getProfile(refreshToken)
-    
-        id=user['data']['clientcode']
-        #id='D88311'
-        #
-        #print(id)
 
-        self.setUserId(id)
-        user['data']['jwtToken']="Bearer "+jwtToken
-        user['data']['refreshToken']=refreshToken
-        #print("USER",user)
-        return user
-    
+        if loginResultObject['status']==True or true:
+            jwtToken=loginResultObject['data']['jwtToken']
+            self.setAccessToken(jwtToken)
+            refreshToken=loginResultObject['data']['refreshToken']
+            feedToken=loginResultObject['data']['feedToken']
+            self.setRefreshToken(refreshToken)
+            self.setFeedToken(feedToken)
+            user=self.getProfile(refreshToken)
+        
+            id=user['data']['clientcode']
+            #id='D88311'
+            self.setUserId(id)
+            user['data']['jwtToken']="Bearer "+jwtToken
+            user['data']['refreshToken']=refreshToken
+
+            #print("USER",user)
+            return user
+        else:
+            return 
     def terminateSession(self,clientCode):
         logoutResponseObject=self._postRequest("api.logout",{"clientcode":clientCode})
         return logoutResponseObject
@@ -258,7 +267,10 @@ class SmartConnect(object):
     def generateToken(self,refresh_token):
         response=self._postRequest('api.token',{"refreshToken":refresh_token})
         jwtToken=response['data']['jwtToken']
+        feedToken=response['data']['feedToken']
+        self.setFeedToken(feedToken)
         self.setAccessToken(jwtToken)
+
         return response
 
     def renewAccessToken(self):
@@ -283,7 +295,7 @@ class SmartConnect(object):
 
     def getProfile(self,refreshToken):
         user=self._getRequest("api.user.profile",{"refreshToken":refreshToken})
-        print("USER PROFILE",user)
+        #print("USER PROFILE",user)
         return user
     
     def placeOrder(self,orderparams):

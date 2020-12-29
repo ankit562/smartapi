@@ -13,7 +13,7 @@ requirements = [
 
 setup(
     name="smartapi-python",
-    version="1.0.3",
+    version="1.1.0",
     author="ab-smartapi",
     author_email="smartapi.sdk@gmail.com",
     description="Angel Broking openApi integration",
@@ -28,7 +28,6 @@ setup(
         "Intended Audience :: Financial and Insurance Industry",
         "Programming Language :: Python",
         "Natural Language :: English",
-        "License :: OSI Approved :: MIT License",
         "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",

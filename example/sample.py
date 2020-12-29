@@ -1,10 +1,10 @@
 # package import statement
-from smartapi.smartConnect import SmartConnect
+from smartapi.smartConnect import SmartConnect #from smartapi import SmartConnect
 
 obj=SmartConnect()
 #login api call
 
-data = obj.generateSession('D88311','Angel@444')
+data = obj.generateSession('Your Client Id','Password')
 refreshToken= data['data']['refreshToken']
 
 #fetch User Profile
@@ -33,7 +33,7 @@ except Exception as e:
 
 #logout
 try:
-    logout=obj.terminateSession('D88311')
+    logout=obj.terminateSession('Your Client Id')
     print("Logout Successfull")
 except Exception as e:
     print("Logout failed: {}".format(e.message))

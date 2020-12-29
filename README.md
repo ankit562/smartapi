@@ -14,15 +14,19 @@ pip install smartapi-python
 
 ```python
 # package import statement
-from smartapi.smartConnect import SmartConnect
+from smartapi import SmartConnect #or from smartapi.smartConnect import SmartConnect
+#import smartapi.smartExceptions(for smartExceptions)
 
 #create object of call
-obj=SmartConnect()
+obj=SmartConnect(api_key="your api key")
 
 #login api call
 
-data = obj.generateSession("D88311","Angel@444")
+data = obj.generateSession("Your Client ID","Your Password")
 refreshToken= data['data']['refreshToken']
+
+#fetch the feedtoken
+feedToken=obj.getfeedToken()
 
 #fetch User Profile
 userProfile= obj.getProfile(refreshToken)
@@ -49,18 +53,18 @@ except Exception as e:
 
 #logout
 try:
-    logout=obj.terminateSession('D88311')
+    logout=obj.terminateSession('Your Client Id')
     print("Logout Successfull")
 except Exception as e:
     print("Logout failed: {}".format(e.message))
 
-#websocket
-from smartapi.smartSocket import SmartSocket
+## WebSocket
+from smartapi import WebSocket 
 FEED_TOKEN= "your feed token"
-CLIENT_CODE="your client code"
+CLIENT_CODE="your client Id"
 token="channel you want the information of" #"nse_cm|2885&nse_cm|1594&nse_cm|11536"
 
-ss = SmartSocket(FEED_TOKEN, CLIENT_CODE)
+ss = WebSocket(FEED_TOKEN, CLIENT_CODE)
 
 def on_tick(ws, tick):
     print("Ticks: {}".format(tick))
@@ -79,7 +83,6 @@ ss.on_close = on_close
 ss.connect( )
 
 
-License
-MIT
+
 
 
