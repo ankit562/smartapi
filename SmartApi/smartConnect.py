@@ -16,7 +16,6 @@ from smartapi.version import __version__, __title__
 
 log = logging.getLogger(__name__)
 
-
 class SmartConnect(object):
     #_rootUrl = "https://openapisuat.angelbroking.com"
     _rootUrl="https://apiconnect.angelbroking.com" #prod endpoint
@@ -241,7 +240,7 @@ class SmartConnect(object):
         params={"clientcode":clientCode,"password":password}
         loginResultObject=self._postRequest("api.login",params)
 
-        if loginResultObject['status']==True or true:
+        if loginResultObject['status']==True :
             jwtToken=loginResultObject['data']['jwtToken']
             self.setAccessToken(jwtToken)
             refreshToken=loginResultObject['data']['refreshToken']
@@ -260,6 +259,7 @@ class SmartConnect(object):
             return user
         else:
             return 
+            
     def terminateSession(self,clientCode):
         logoutResponseObject=self._postRequest("api.logout",{"clientcode":clientCode})
         return logoutResponseObject
