@@ -76,6 +76,43 @@ params={
 }
 
 smartApi.convertPosition(params)
+gttCreateParams={
+	    "tradingsymbol" : "SBIN-EQ",
+	    "symboltoken" : "3045",
+	    "exchange" : "NSE", 
+	    "producttype" : "MARGIN",
+	    "transactiontype" : "BUY",
+	    "price" : 100000,
+	    "qty" : 10,
+	    "disclosedqty": 10,
+	    "triggerprice" : 200000,
+	    "timeperiod" : 365
+	}
+rule_id=smartApi.gttCreateRule(gttCreateParams)
+
+gttModifyParams={
+		"id": rule_id,
+		"symboltoken":"3045",
+		"exchange":"NSE",
+		"price":19500,
+		"quantity":10,
+		"triggerprice":200000,
+		"disclosedqty":10,
+		"timeperiod":365
+	}
+modified_id=smartApi.gttModifyRule(gttModifyParams)
+
+cancelParams={
+		"id": rule_id, 
+		"symboltoken":"3045",
+		"exchange":"NSE"
+		}	
+    
+cancelled_id=smartApi.gttCancelRule(cancelParams)
+
+smartApi.gttDetails(rule_id)
+
+smartApi.gttLists('List of status',<page>,<count>)
 
 smartApi.terminateSession('Your Client Id')
 

@@ -50,13 +50,41 @@ try:
     print("The order id is: {}".format(orderId))
 except Exception as e:
     print("Order placement failed: {}".format(e.message))
-
+#gtt rule creation
+try:
+    gttCreateParams={
+            "tradingsymbol" : "SBIN-EQ",
+            "symboltoken" : "3045",
+            "exchange" : "NSE", 
+            "producttype" : "MARGIN",
+            "transactiontype" : "BUY",
+            "price" : 100000,
+            "qty" : 10,
+            "disclosedqty": 10,
+            "triggerprice" : 200000,
+            "timeperiod" : 365
+        }
+    rule_id=gtt.gttCreateRule(gttCreateParams)
+    print("The GTT rule id is: {}".format(rule_id))
+except Exception as e:
+    print("GTT Rule creation failed: {}".format(e.message))
+    
+#gtt rule list
+try:
+    status=["FORALL"] #should be a list
+    page=1
+    count=10
+    lists=smartApi.gttLists(status,page,count)
+except Exception as e:
+    print("GTT Rule List failed: {}".format(e.message))
 #logout
 try:
     logout=obj.terminateSession('Your Client Id')
     print("Logout Successfull")
 except Exception as e:
     print("Logout failed: {}".format(e.message))
+
+
 
 ## WebSocket
 from smartapi import WebSocket 
