@@ -11,12 +11,21 @@ import zlib
 from datetime import datetime
 from twisted.internet import reactor, ssl
 from twisted.python import log as twisted_log
+from twisted.internet.protocol import ReconnectingClientFactory
 from autobahn.twisted.websocket import WebSocketClientProtocol, \
     WebSocketClientFactory, connectWS
 
 log = logging.getLogger(__name__)
 
 class SmartSocketClientProtocol(WebSocketClientProtocol):
+    PING_INTERVAL = 2.5
+    KEEPALIVE_INTERVAL = 5
+
+    _ping_message = ""
+    _next_ping = None
+    _next_pong_check = None
+    _last_pong_time = None
+    _last_ping_time = None
 
     def __init__(self, *args, **kwargs):
         super(SmartSocketClientProtocol,self).__init__(*args,**kwargs)
@@ -29,6 +38,11 @@ class SmartSocketClientProtocol(WebSocketClientProtocol):
             self.factory.on_connect(self, response)
     
     def onOpen(self):
+        # send ping
+        self._loop_ping()
+        # init last pong check after X seconds
+        self._loop_pong_check()
+
         if self.factory.on_open:
             self.factory.on_open(self)
 
@@ -48,9 +62,70 @@ class SmartSocketClientProtocol(WebSocketClientProtocol):
         if self.factory.on_close:
             self.factory.on_close(self, code, reason)
 
+        
+        # Cancel next ping and timer
+        self._last_ping_time = None
+        self._last_pong_time = None
 
-class SmartSocketClientFactory(WebSocketClientFactory):
+        if self._next_ping:
+            self._next_ping.cancel()
+
+        if self._next_pong_check:
+            self._next_pong_check.cancel()
+
+    def onPong(self, response):  # noqa
+        """Called when pong message is received."""
+        if self._last_pong_time and self.factory.debug:
+            log.debug("last pong was {} seconds back.".format(time.time() - self._last_pong_time))
+
+        self._last_pong_time = time.time()
+
+        if self.factory.debug:
+            log.debug("pong => {}".format(response))
+
+    """
+    Custom helper and exposed methods.
+    """
+    def _loop_ping(self): # noqa
+        """Start a ping loop where it sends ping message every X seconds."""
+        if self.factory.debug:
+            log.debug("ping => {}".format(self._ping_message))
+            if self._last_ping_time:
+                log.debug("last ping was {} seconds back.".format(time.time() - self._last_ping_time))
+
+        # Set current time as last ping time
+        self._last_ping_time = time.time()
+        # Send a ping message to server
+        self.sendPing(self._ping_message)
+
+        # Call self after X seconds
+        self._next_ping = self.factory.reactor.callLater(self.PING_INTERVAL, self._loop_ping)
+
+    def _loop_pong_check(self):
+        """
+        Timer sortof to check if connection is still there.
+        Checks last pong message time and disconnects the existing connection to make sure it doesn't become a ghost connection.
+        """
+        if self._last_pong_time:
+            # No pong message since long time, so init reconnect
+            last_pong_diff = time.time() - self._last_pong_time
+            if last_pong_diff > (2 * self.PING_INTERVAL):
+                if self.factory.debug:
+                    log.debug("Last pong was {} seconds ago. So dropping connection to reconnect.".format(
+                        last_pong_diff))
+                # drop existing connection to avoid ghost connection
+                self.dropConnection(abort=True)
+
+        # Call self after X seconds
+        self._next_pong_check = self.factory.reactor.callLater(self.PING_INTERVAL, self._loop_pong_check)
+
+class SmartSocketClientFactory(WebSocketClientFactory,ReconnectingClientFactory):
     protocol = SmartSocketClientProtocol
+    
+    maxDelay = 5
+    maxRetries = 10
+
+    _last_connection_time = None
 
     def __init__(self, *args, **kwargs):
         """Initialize with default callback method values."""
@@ -61,9 +136,51 @@ class SmartSocketClientFactory(WebSocketClientFactory):
         self.on_close = None
         self.on_message = None
         self.on_connect = None
+        self.on_reconnect = None
+        self.on_noreconnect = None
 
 
         super(SmartSocketClientFactory, self).__init__(*args, **kwargs)
+
+    def startedConnecting(self, connector):  # noqa
+        """On connecting start or reconnection."""
+        if not self._last_connection_time and self.debug:
+            log.debug("Start WebSocket connection.")
+
+        self._last_connection_time = time.time()
+
+    def clientConnectionFailed(self, connector, reason):  # noqa
+        """On connection failure (When connect request fails)"""
+        if self.retries > 0:
+            log.error("Retrying connection. Retry attempt count: {}. Next retry in around: {} seconds".format(self.retries, int(round(self.delay))))
+
+            # on reconnect callback
+            if self.on_reconnect:
+                self.on_reconnect(self.retries)
+
+        # Retry the connection
+        self.retry(connector)
+        self.send_noreconnect()
+
+    def clientConnectionLost(self, connector, reason):  # noqa
+        """On connection lost (When ongoing connection got disconnected)."""
+        if self.retries > 0:
+            # on reconnect callback
+            if self.on_reconnect:
+                self.on_reconnect(self.retries)
+
+        # Retry the connection
+        self.retry(connector)
+        self.send_noreconnect()
+
+    def send_noreconnect(self):
+        """Callback `no_reconnect` if max retries are exhausted."""
+        if self.maxRetries is not None and (self.retries > self.maxRetries):
+            if self.debug:
+                log.debug("Maximum retries ({}) exhausted.".format(self.maxRetries))
+
+            if self.on_noreconnect:
+                self.on_noreconnect()
 
 
 class WebSocket(object):
@@ -78,15 +195,50 @@ class WebSocket(object):
         "mcxsx": 8,
         "indices": 9
     }
+
+    # Default connection timeout
+    CONNECT_TIMEOUT = 30
+    # Default Reconnect max delay.
+    RECONNECT_MAX_DELAY = 60
+    # Default reconnect attempts
+    RECONNECT_MAX_TRIES = 50
+
     ROOT_URI='wss://omnefeeds.angelbroking.com/NestHtml5Mobile/socket/stream'
+
+    # Flag to set if its first connect
+    _is_first_connect = True
+
+    # Minimum delay which should be set between retries. User can't set less than this
+    _minimum_reconnect_max_delay = 5
+    # Maximum number or retries user can set
+    _maximum_reconnect_max_tries = 300
     feed_token=None
     client_code=None
-    def __init__(self, FEED_TOKEN, CLIENT_CODE, debug=False, root=None):
+    def __init__(self, FEED_TOKEN, CLIENT_CODE,task,debug=False, root=None,reconnect=True,      reconnect_max_tries=RECONNECT_MAX_TRIES, reconnect_max_delay=RECONNECT_MAX_DELAY,connect_timeout=CONNECT_TIMEOUT):
+
+
         self.root = root or self.ROOT_URI
         self.feed_token= FEED_TOKEN
         self.client_code= CLIENT_CODE
+        self.task=task
         
-        
+        # Set max reconnect tries
+        if reconnect_max_tries > self._maximum_reconnect_max_tries:
+            log.warning("`reconnect_max_tries` can not be more than {val}. Setting to highest possible value - {val}.".format(
+                val=self._maximum_reconnect_max_tries))
+            self.reconnect_max_tries = self._maximum_reconnect_max_tries
+        else:
+            self.reconnect_max_tries = reconnect_max_tries
+
+        # Set max reconnect delay
+        if reconnect_max_delay < self._minimum_reconnect_max_delay:
+            log.warning("`reconnect_max_delay` can not be less than {val}. Setting to lowest possible value - {val}.".format(
+                val=self._minimum_reconnect_max_delay))
+            self.reconnect_max_delay = self._minimum_reconnect_max_delay
+        else:
+            self.reconnect_max_delay = reconnect_max_delay
+
+        self.connect_timeout = connect_timeout        
         # Debug enables logs
         self.debug = debug
 
@@ -97,6 +249,8 @@ class WebSocket(object):
         self.on_error = None
         self.on_connect = None
         self.on_message = None
+        self.on_reconnect = None
+        self.on_noreconnect = None
 
     def _create_connection(self, url, **kwargs):
         """Create a WebSocket client connection."""
@@ -113,6 +267,12 @@ class WebSocket(object):
         self.factory.on_close = self._on_close
         self.factory.on_message = self._on_message
         self.factory.on_connect = self._on_connect
+        self.factory.on_reconnect = self._on_reconnect
+        self.factory.on_noreconnect = self._on_noreconnect
+
+
+        self.factory.maxDelay = self.reconnect_max_delay
+        self.factory.maxRetries = self.reconnect_max_tries
 
 
     def connect(self, threaded=False, disable_ssl_verification=False, proxy=None):
@@ -155,35 +315,45 @@ class WebSocket(object):
 
     def close(self, code=None, reason=None):
         """Close the WebSocket connection."""
+        self.stop_retry()
         self._close(code, reason)
 
     def stop(self):
         """Stop the event loop. Should be used if main thread has to be closed in `on_close` method."""
         #print("stop")
+        
         reactor.stop()
 
+    def stop_retry(self):
+        """Stop auto retry when it is in progress."""
+        if self.factory:
+            self.factory.stopTrying()    
+
     def send_request(self,token):
-        strwatchlistscrips = token #dynamic call
-        
-        try:
-            #print("Inside")
-            request={"task":"cn","channel":"","token":self.feed_token,"user":self.client_code,"acctid":self.client_code}
-            self.ws.sendMessage(
-                six.b(json.dumps(request))
-            )
-            #print(request)
-            request={"task":"mw","channel":strwatchlistscrips,"token":self.feed_token,"user":self.client_code,"acctid":self.client_code}
+        if self.task in ("mw","sfi","dp"):
+            strwatchlistscrips = token #dynamic call
             
-            self.ws.sendMessage(
-                six.b(json.dumps(request))
-            )
-            threading.Thread(target=self.heartBeat,daemon=True).start()
-            #print(request)
-            return True
-        except Exception as e:
-            self._close(reason="Error while request sending: {}".format(str(e)))
-            raise
-        
+            try:
+                #print("Inside")
+                request={"task":"cn","channel":"","token":self.feed_token,"user":self.client_code,"acctid":self.client_code}
+                self.ws.sendMessage(
+                    six.b(json.dumps(request))
+                )
+                #print(request)
+                request={"task":self.task,"channel":strwatchlistscrips,"token":self.feed_token,"user":self.client_code,"acctid":self.client_code}
+                
+                self.ws.sendMessage(
+                    six.b(json.dumps(request))
+                )
+                threading.Thread(target=self.heartBeat,daemon=True).start()
+                #print(request)
+                return True
+            except Exception as e:
+                self._close(reason="Error while request sending: {}".format(str(e)))
+                raise
+        else:
+            print("The task entered is invalid, Please enter correct task(mw,sfi,dp) ")
+
     def _on_connect(self, ws, response):
         self.ws = ws
         if self.on_connect:
@@ -217,8 +387,22 @@ class WebSocket(object):
             self._parse_text_message(payload)
 
     def _on_open(self, ws):
+
+        if not self._is_first_connect:
+            self.connect()
+
+        self._is_first_connect = False
+
         if self.on_open:
             return self.on_open(self)
+
+    def _on_reconnect(self, attempts_count):
+        if self.on_reconnect:
+            return self.on_reconnect(self, attempts_count)
+
+    def _on_noreconnect(self):
+        if self.on_noreconnect:
+            return self.on_noreconnect(self)
 
     def heartBeat(self):
         while True:
@@ -319,4 +503,3 @@ class WebSocket(object):
 
         return packets
     
-
