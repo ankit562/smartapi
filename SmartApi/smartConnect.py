@@ -94,7 +94,9 @@ class SmartConnect(object):
 
 
     try:
-        clientPublicIp= get('https://api.ipify.org').text
+        clientPublicIp= " " + get('https://api.ipify.org').text
+        if " " in clientPublicIp:
+            clientPublicIp=clientPublicIp.replace(" ","")
         hostname = socket.gethostname()
         clientLocalIp=socket.gethostbyname(hostname)
     except Exception as e:
