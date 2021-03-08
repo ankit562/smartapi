@@ -214,13 +214,13 @@ class WebSocket(object):
     _maximum_reconnect_max_tries = 300
     feed_token=None
     client_code=None
-    def __init__(self, FEED_TOKEN, CLIENT_CODE,task,debug=False, root=None,reconnect=True,      reconnect_max_tries=RECONNECT_MAX_TRIES, reconnect_max_delay=RECONNECT_MAX_DELAY,connect_timeout=CONNECT_TIMEOUT):
+    def __init__(self, FEED_TOKEN, CLIENT_CODE,debug=False, root=None,reconnect=True,reconnect_max_tries=RECONNECT_MAX_TRIES, reconnect_max_delay=RECONNECT_MAX_DELAY,connect_timeout=CONNECT_TIMEOUT):
 
 
         self.root = root or self.ROOT_URI
         self.feed_token= FEED_TOKEN
         self.client_code= CLIENT_CODE
-        self.task=task
+    
         
         # Set max reconnect tries
         if reconnect_max_tries > self._maximum_reconnect_max_tries:
@@ -329,8 +329,8 @@ class WebSocket(object):
         if self.factory:
             self.factory.stopTrying()    
 
-    def send_request(self,token):
-        if self.task in ("mw","sfi","dp"):
+    def send_request(self,token,task):
+        if task in ("mw","sfi","dp"):
             strwatchlistscrips = token #dynamic call
             
             try:
@@ -340,7 +340,7 @@ class WebSocket(object):
                     six.b(json.dumps(request))
                 )
                 #print(request)
-                request={"task":self.task,"channel":strwatchlistscrips,"token":self.feed_token,"user":self.client_code,"acctid":self.client_code}
+                request={"task":task,"channel":strwatchlistscrips,"token":self.feed_token,"user":self.client_code,"acctid":self.client_code}
                 
                 self.ws.sendMessage(
                     six.b(json.dumps(request))
