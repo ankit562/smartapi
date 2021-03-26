@@ -24,47 +24,6 @@ class SmartConnect(object):
     #_login_url ="https://smartapi.angelbroking.com/login"
     _login_url="https://smartapi.angelbroking.com/publisher-login" #prod endpoint
     _default_timeout = 7  # In seconds
-    # Products
-    PRODUCT_MIS = "MIS"
-
-    PRODUCT_CNC = "CNC"
-    PRODUCT_NRML = "NRML"
-    PRODUCT_CO = "CO"
-    PRODUCT_BO = "BO"
-
-    # Order types
-    ORDER_TYPE_MARKET = "MARKET"
-    ORDER_TYPE_LIMIT = "LIMIT"
-    ORDER_TYPE_SLM = "SL-M"
-    ORDER_TYPE_SL = "SL"
-
-    # Varities
-    VARIETY_REGULAR = "regular"
-    VARIETY_BO = "bo"
-    VARIETY_CO = "co"
-    VARIETY_AMO = "amo"
-
-    # Transaction type
-    TRANSACTION_TYPE_BUY = "BUY"
-    TRANSACTION_TYPE_SELL = "SELL"
-
-    # Validity
-    VALIDITY_DAY = "DAY"
-    VALIDITY_IOC = "IOC"
-
-    # Exchanges
-    EXCHANGE_NSE = "NSE"
-    EXCHANGE_BSE = "BSE"
-    EXCHANGE_NFO = "NFO"
-    EXCHANGE_CDS = "CDS"
-    EXCHANGE_BFO = "BFO"
-    EXCHANGE_MCX = "MCX"
-    EXCHANGE_NCDEX="NCDEX"
-
-    # Status constants
-    STATUS_COMPLETE = "COMPLETE"
-    STATUS_REJECTED = "REJECTED"
-    STATUS_CANCELLED = "CANCELLED"
 
     _routes = {
         "api.login":"/rest/auth/angelbroking/user/v1/loginByPassword",
@@ -89,7 +48,9 @@ class SmartConnect(object):
         "api.gtt.modify":"/gtt-service/rest/secure/angelbroking/gtt/v1/modifyRule",
         "api.gtt.cancel":"/gtt-service/rest/secure/angelbroking/gtt/v1/cancelRule",
         "api.gtt.details":"/rest/secure/angelbroking/gtt/v1/ruleDetails",
-        "api.gtt.list":"/rest/secure/angelbroking/gtt/v1/ruleList"
+        "api.gtt.list":"/rest/secure/angelbroking/gtt/v1/ruleList",
+
+        "api.candle.data":"/rest/secure/angelbroking/historical/v1/getCandleData"
     }
 
 
@@ -159,7 +120,7 @@ class SmartConnect(object):
         self.session_expiry_hook = method
     
     def getUserId():
-        return userId;
+        return userId
 
     def setUserId(self,id):
         self.userId=id
@@ -390,7 +351,7 @@ class SmartConnect(object):
                 del(params[k])
 
         createGttRuleResponse=self._postRequest("api.gtt.create",params)
-        print(createGttRuleResponse)       
+        #print(createGttRuleResponse)       
         return createGttRuleResponse['data']['id']
 
     def gttModifyRule(self,modifyRuleParams):
@@ -399,7 +360,7 @@ class SmartConnect(object):
             if params[k] is None:
                 del(params[k])
         modifyGttRuleResponse=self._postRequest("api.gtt.modify",params)
-        print(modifyGttRuleResponse)
+        #print(modifyGttRuleResponse)
         return modifyGttRuleResponse['data']['id']
      
     def gttCancelRule(self,gttCancelParams):
@@ -408,9 +369,9 @@ class SmartConnect(object):
             if params[k] is None:
                 del(params[k])
         
-        print(params)
+        #print(params)
         cancelGttRuleResponse=self._postRequest("api.gtt.cancel",params)
-        print(cancelGttRuleResponse)
+        #print(cancelGttRuleResponse)
         return cancelGttRuleResponse
      
     def gttDetails(self,id):
@@ -428,12 +389,20 @@ class SmartConnect(object):
                 "count":count
             }
             gttListResponse=self._postRequest("api.gtt.list",params)
-            print(gttListResponse)
+            #print(gttListResponse)
             return gttListResponse
         else:
             message="The status param is entered as" +str(type(status))+". Please enter status param as a list i.e., status=['CANCELLED']"
             return message
 
+    def getCandleData(self,historicDataParams):
+        params=historicDataParams
+        for k in list(params.keys()):
+            if params[k] is None:
+                del(params[k])
+        getCandleDataResponse=self._postRequest("api.candle.data",historicDataParams)
+        return getCandleDataResponse
+        
     def _user_agent(self):
         return (__title__ + "-python/").capitalize() + __version__   
 

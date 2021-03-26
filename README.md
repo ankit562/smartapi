@@ -77,6 +77,19 @@ try:
     lists=smartApi.gttLists(status,page,count)
 except Exception as e:
     print("GTT Rule List failed: {}".format(e.message))
+
+#Historic api
+try:
+    historicParam={
+    "exchange": "NSE",
+    "symboltoken": "3045",
+    "interval": "MINUTE",
+    "fromdate": "2021-02-08 09:00", 
+    "todate": "2021-02-08 09:16"
+    }
+    smartApi.getCandleData(historicParam)
+except Exception as e:
+    print("Historic Api failed: {}".format(e.message))
 #logout
 try:
     logout=obj.terminateSession('Your Client Id')
@@ -91,15 +104,16 @@ from smartapi import WebSocket
 FEED_TOKEN= "your feed token"
 CLIENT_CODE="your client Id"
 token="channel you want the information of" #"nse_cm|2885&nse_cm|1594&nse_cm|11536"
-
+task="task" #"mw"|"sfi"|"dp"
 ss = WebSocket(FEED_TOKEN, CLIENT_CODE)
 
 def on_tick(ws, tick):
     print("Ticks: {}".format(tick))
 
 def on_connect(ws, response):
-    ws.send_request(token)
-
+    ws.websocket_connection() # Websocket connection  
+    ws.send_request(token,task) 
+    
 def on_close(ws, code, reason):
     ws.stop()
 
