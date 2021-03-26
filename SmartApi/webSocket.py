@@ -151,7 +151,7 @@ class WebSocket(object):
         self.root = root or self.ROOT_URI
         self.feed_token= FEED_TOKEN
         self.client_code= CLIENT_CODE
-
+        
         # Set max reconnect tries
         if reconnect_max_tries > self._maximum_reconnect_max_tries:
             log.warning("`reconnect_max_tries` can not be more than {val}. Setting to highest possible value - {val}.".format(

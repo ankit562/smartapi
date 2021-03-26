@@ -122,12 +122,13 @@ from smartapi import WebSocket
 FEED_TOKEN=feedToken 
 CLIENT_CODE="Your Client Id"
 token=None
+task=None
 ss = WebSocket(FEED_TOKEN, CLIENT_CODE)
 def on_tick(ws, tick):
     print("Ticks: {}".format(tick))
 
 def on_connect(ws, response):
-    ws.send_request(token)
+    ws.send_request(token,task)
 
 def on_close(ws, code, reason):
     ws.stop()
