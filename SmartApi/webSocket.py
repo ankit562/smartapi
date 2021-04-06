@@ -133,7 +133,7 @@ class WebSocket(object):
     # Default reconnect attempts
     RECONNECT_MAX_TRIES = 50
 
-    ROOT_URI='wss://omnefeeds.angelbroking.com/NestHtml5Mobile/socket/stream'
+    ROOT_URI='wss://wsfeeds.angelbroking.com/NestHtml5Mobile/socket/stream'
 
     # Flag to set if its first connect
     _is_first_connect = True
