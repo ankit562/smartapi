@@ -100,7 +100,9 @@ except Exception as e:
 
 
 ## WebSocket
-from smartapi import WebSocket 
+from smartapi import WebSocket
+import multiprocessing
+import sys 
 FEED_TOKEN= "your feed token"
 CLIENT_CODE="your client Id"
 token="channel you want the information of" #"nse_cm|2885&nse_cm|1594&nse_cm|11536"
@@ -122,7 +124,9 @@ ss.on_ticks = on_tick
 ss.on_connect = on_connect
 ss.on_close = on_close
 
-ss.connect( )
+p1 = multiprocessing.Process(target = ss.connect())
+sys.exit()
+p1.start()
 
 
 

@@ -112,13 +112,15 @@ cancelled_id=smartApi.gttCancelRule(cancelParams)
 
 smartApi.gttDetails(rule_id)
 
-smartApi.gttLists('List of status',<page>,<count>)
+smartApi.gttLists('List of status','<page>','<count>')
 
 smartApi.terminateSession('Your Client Id')
 
 ## Websocket Programming
 
 from smartapi import WebSocket
+import multiprocessing
+import sys
 FEED_TOKEN=feedToken 
 CLIENT_CODE="Your Client Id"
 token=None
@@ -138,4 +140,6 @@ ss.on_ticks = on_tick
 ss.on_connect = on_connect
 ss.on_close = on_close
 
-ss.connect( )
+p1 = multiprocessing.Process(target = ss.connect())
+sys.exit()
+p1.start()
