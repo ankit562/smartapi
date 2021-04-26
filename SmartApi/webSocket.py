@@ -356,7 +356,7 @@ class WebSocket(object):
         
             except:
                 print("HeartBeats Failed")
-            time.sleep(60)
+            time.sleep(30)
 
 
     def _parse_text_message(self, payload):

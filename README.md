@@ -18,7 +18,10 @@ from smartapi import SmartConnect #or from smartapi.smartConnect import SmartCon
 #import smartapi.smartExceptions(for smartExceptions)
 
 #create object of call
-obj=SmartConnect(api_key="your api key")
+obj=SmartConnect(api_key="your api key",
+                #optional
+                #access_token = "your access token",
+                #refresh_token = "your refresh_token")
 
 #login api call
 
@@ -101,8 +104,7 @@ except Exception as e:
 
 ## WebSocket
 from smartapi import WebSocket
-import multiprocessing
-import sys 
+
 FEED_TOKEN= "your feed token"
 CLIENT_CODE="your client Id"
 token="channel you want the information of" #"nse_cm|2885&nse_cm|1594&nse_cm|11536"
@@ -124,9 +126,7 @@ ss.on_ticks = on_tick
 ss.on_connect = on_connect
 ss.on_close = on_close
 
-p1 = multiprocessing.Process(target = ss.connect())
-sys.exit()
-p1.start()
+ss.connect()
 
 
 
