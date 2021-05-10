@@ -277,7 +277,7 @@ class WebSocket(object):
         self.ws.sendMessage(
             six.b(json.dumps(request))
         )
-        print(request)
+        #print(request)
 
         threading.Thread(target=self.heartBeat,daemon=True).start()
         
@@ -356,7 +356,7 @@ class WebSocket(object):
         
             except:
                 print("HeartBeats Failed")
-            time.sleep(30)
+            time.sleep(60)
 
 
     def _parse_text_message(self, payload):

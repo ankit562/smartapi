@@ -130,6 +130,7 @@ def on_tick(ws, tick):
     print("Ticks: {}".format(tick))
 
 def on_connect(ws, response):
+    ws.websocket_connection()
     ws.send_request(token,task)
 
 def on_close(ws, code, reason):
