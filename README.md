@@ -8,6 +8,7 @@ Use the package manager [pip](https://pip.pypa.io/en/stable/) to install smartap
 
 ```bash
 pip install smartapi-python
+pip install websocket-client
 ```
 
 ## Usage
@@ -99,35 +100,45 @@ try:
     print("Logout Successfull")
 except Exception as e:
     print("Logout failed: {}".format(e.message))
+```
 
 
+## Getting started with SmartAPI Websocket's
+```python
 
-## WebSocket
-from smartapi import WebSocket
+from smartapiwebsocket import SmartWebSocket
 
-FEED_TOKEN= "your feed token"
-CLIENT_CODE="your client Id"
-token="channel you want the information of" #"nse_cm|2885&nse_cm|1594&nse_cm|11536"
-task="task" #"mw"|"sfi"|"dp"
-ss = WebSocket(FEED_TOKEN, CLIENT_CODE)
+# feed_token=092017047
+FEED_TOKEN="YOUR_FEED_TOKEN"
+CLIENT_CODE="YOUR_CLIENT_CODE"
+# token="mcx_fo|224395"
+token="EXCHANGE|TOKEN_SYMBOL"    #SAMPLE: nse_cm|2885&nse_cm|1594&nse_cm|11536&nse_cm|3045
+# token="mcx_fo|226745&mcx_fo|220822&mcx_fo|227182&mcx_fo|221599"
+task="mw"   # mw|sfi|dp
 
-def on_tick(ws, tick):
-    print("Ticks: {}".format(tick))
+ss = SmartWebSocket(FEED_TOKEN, CLIENT_CODE)
 
-def on_connect(ws, response):
-    ws.websocket_connection() # Websocket connection  
-    ws.send_request(token,task) 
+def on_message(ws, message):
+    print("Ticks: {}".format(message))
     
-def on_close(ws, code, reason):
-    ws.stop()
+def on_open(ws):
+    print("on open")
+    ss.subscribe(task,token)
+    
+def on_error(ws, error):
+    print(error)
+    
+def on_close(ws):
+    print("Close")
 
 # Assign the callbacks.
-ss.on_ticks = on_tick
-ss.on_connect = on_connect
-ss.on_close = on_close
+ss._on_open = on_open
+ss._on_message = on_message
+ss._on_error = on_error
+ss._on_close = on_close
 
 ss.connect()
-
+```
 
 
 
