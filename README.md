@@ -106,7 +106,7 @@ except Exception as e:
 ## Getting started with SmartAPI Websocket's
 ```python
 
-from smartapiwebsocket import SmartWebSocket
+from smartapi import SmartWebSocket
 
 # feed_token=092017047
 FEED_TOKEN="YOUR_FEED_TOKEN"
