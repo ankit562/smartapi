@@ -68,7 +68,7 @@ try:
             "triggerprice" : 200000,
             "timeperiod" : 365
         }
-    rule_id=gtt.gttCreateRule(gttCreateParams)
+    rule_id=obj.gttCreateRule(gttCreateParams)
     print("The GTT rule id is: {}".format(rule_id))
 except Exception as e:
     print("GTT Rule creation failed: {}".format(e.message))
@@ -78,7 +78,7 @@ try:
     status=["FORALL"] #should be a list
     page=1
     count=10
-    lists=smartApi.gttLists(status,page,count)
+    lists=obj.gttLists(status,page,count)
 except Exception as e:
     print("GTT Rule List failed: {}".format(e.message))
 
@@ -91,7 +91,7 @@ try:
     "fromdate": "2021-02-08 09:00", 
     "todate": "2021-02-08 09:16"
     }
-    smartApi.getCandleData(historicParam)
+    obj.getCandleData(historicParam)
 except Exception as e:
     print("Historic Api failed: {}".format(e.message))
 #logout

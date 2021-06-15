@@ -151,7 +151,7 @@ class SmartWebSocket(object):
               
     def __on_error(self, ws, error):
                              
-        if ( "timed" in str(error) ) or ( "Connection is already closed" in str(error) ):
+        if ( "timed" in str(error) ) or ( "Connection is already closed" in str(error)  or ( "Connection to remote host was lost" in str(error) ):
             
             self.WS_RECONNECT_FLAG = True
             self.HB_THREAD_FLAG = True
